@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OHBM BrainHack 2026 | Certificate of Attendance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f0ece6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 40px 20px 60px;
+      color: #1a1a2e;
+    }
+
+    h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #1a1a2e;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+
+    p.subtitle {
+      font-size: 0.85rem;
+      color: #666;
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    input[type="text"] {
+      border: 1.5px solid #c8c0b8;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 1rem;
+      width: 280px;
+      background: #fff;
+      color: #1a1a2e;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      border-color: #fe6600;
+    }
+
+    button {
+      background: #fe6600;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.03em;
+      transition: background 0.2s, opacity 0.2s;
+    }
+
+    button:hover { background: #d95500; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Certificate wrapper — maintains landscape A4 aspect ratio */
+    .cert-wrapper {
+      width: 100%;
+      max-width: 860px;
+      position: relative;
+    }
+
+    /* This hidden div is what we render to PDF — fixed A4 landscape px */
+    #cert-render {
+      position: absolute;
+      left: -9999px;
+      top: 0;
+      width: 1123px;
+      height: 795px;
+    }
+
+    #cert-render img.bg {
+      width: 1123px;
+      height: 795px;
+      display: block;
+    }
+
+    #cert-render .name-layer {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1123px;
+      height: 795px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #cert-render .name-text {
+      font-family: 'Dancing Script', cursive;
+      font-size: 72px;
+      color: #fe6600;
+      margin-top: 12px;
+      text-align: center;
+      max-width: 760px;
+      line-height: 1.1;
+    }
+
+    /* Preview — visible scaled version */
+    .cert-preview {
+      width: 100%;
+      aspect-ratio: 1123 / 795;
+      position: relative;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+    }
+
+    .cert-preview img.bg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .cert-preview .name-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cert-preview .name-text-preview {
+      font-family: 'Dancing Script', cursive;
+      /* font-size scales with container width */
+      font-size: 6.4vw;
+      color: #fe6600;
+      margin-top: 1.5%;
+      text-align: center;
+      max-width: 68%;
+      line-height: 1.1;
+      pointer-events: none;
+    }
+
+    @media (min-width: 860px) {
+      .cert-preview .name-text-preview {
+        font-size: 55px;
+      }
+    }
+
+    .hint {
+      font-size: 0.78rem;
+      color: #999;
+      text-align: center;
+      margin-top: 14px;
+    }
+
+    #status {
+      font-size: 0.85rem;
+      color: #fe6600;
+      text-align: center;
+      margin-top: 10px;
+      min-height: 1.2em;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>OHBM BrainHack 2026 | Certificate of Attendance</h1>
+  <p class="subtitle">Enter your name as you'd like it to appear, then download your certificate.</p>
+
+  <div class="controls">
+    <input
+      type="text"
+      id="nameInput"
+      placeholder="Your full name"
+      maxlength="60"
+      autocomplete="name"
+    />
+    <button id="dlBtn" disabled>Download PDF</button>
+  </div>
+
+  <!-- Visible preview -->
+  <div class="cert-wrapper">
+    <div class="cert-preview">
+      <img class="bg" src="certificate.png" alt="Certificate background" id="bgPreview" />
+      <div class="name-overlay">
+        <div class="name-text-preview" id="namePreview">&nbsp;</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden high-res render target -->
+  <div id="cert-render" aria-hidden="true">
+    <img class="bg" src="certificate.png" alt="" id="bgRender" crossorigin="anonymous" />
+    <div class="name-layer">
+      <div class="name-text" id="nameRender">&nbsp;</div>
+    </div>
+  </div>
+
+  <p id="status"></p>
+  <p class="hint">Your name is only used locally in your browser — nothing is sent to any server.</p>
+
+  <script>
+    const input    = document.getElementById('nameInput');
+    const preview  = document.getElementById('namePreview');
+    const render   = document.getElementById('nameRender');
+    const dlBtn    = document.getElementById('dlBtn');
+    const status   = document.getElementById('status');
+
+    input.addEventListener('input', () => {
+      const val = input.value.trim();
+      preview.textContent = val || '\u00a0';
+      render.textContent  = val || '\u00a0';
+      dlBtn.disabled = val.length === 0;
+    });
+
+    dlBtn.addEventListener('click', async () => {
+      const name = input.value.trim();
+      if (!name) return;
+
+      dlBtn.disabled = true;
+      status.textContent = 'Generating your certificate…';
+
+      try {
+        // Make sure the font is loaded
+        await document.fonts.ready;
+
+        const { jsPDF } = window.jspdf;
+
+        const certEl = document.getElementById('cert-render');
+        certEl.style.left = '0';
+        certEl.style.position = 'fixed';
+        certEl.style.top = '-9999px';
+
+        const canvas = await html2canvas(certEl, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: null,
+          width: 1123,
+          height: 795,
+          logging: false,
+        });
+
+        certEl.style.left = '-9999px';
+        certEl.style.position = 'absolute';
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.97);
+
+        // A4 landscape in mm: 297 x 210
+        const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
+
+        const safeName = name.replace(/[^a-z0-9]/gi, '_');
+        pdf.save(`OHBM_BrainHack_2026_Certificate_${safeName}.pdf`);
+
+        status.textContent = 'Certificate downloaded!';
+      } catch (err) {
+        console.error(err);
+        status.textContent = 'Something went wrong. Please try again.';
+      } finally {
+        dlBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
